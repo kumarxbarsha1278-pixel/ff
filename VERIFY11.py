@@ -1,7 +1,7 @@
 """
 ⚡ RAGEBITE ALL-IN-ONE BACKEND ⚡
 Verify Bot + Flask API + Security + Slot Management
-Attack API call NAHI karega — owner ko DM bhejega /bgmi format me key ke saath
+PEHLE /bgmi command bhejta hai, PHIR details
 """
 
 import os
@@ -772,6 +772,11 @@ def api_dd():
             "slots_info": slots_info
         })
 
+    # ✅ PEHLE command bhejo — taaki bridge turant forward kare
+    notify_owner_dd(f"/bgmi {ip} {port} {time_sec}")
+    print(f"📤 Command sent to owner DM: /bgmi {ip} {port} {time_sec}")
+
+    # ✅ PHIR details bhejo — sirf aapke liye (bridge ignore karega)
     notify_owner_dd(
         f"🔔 ATTACK REQUEST\n\n"
         f"🔑 Key: {key}\n"
@@ -779,10 +784,9 @@ def api_dd():
         f"🎯 Target: {ip}:{port}\n"
         f"⏱ Time: {time_sec}s\n"
         f"📌 Slot: #{slot_id}\n"
-        f"🕐 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        f"➡️ /bgmi {ip} {port} {time_sec}"
+        f"🕐 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     )
-    print(f"📤 Forwarded to owner DM: {key[:15]}... → {ip}:{port} for {time_sec}s")
+    print(f"📋 Details sent to owner DM: {key[:15]}...")
 
     end = datetime.now() + timedelta(seconds=time_sec)
     return jsonify({
@@ -819,6 +823,7 @@ async def auto_release_loop(application):
                         continue
                     new_slot, _ = allot_slot(did, kk, pkg, ip, port, t)
                     if new_slot:
+                        notify_owner_dd(f"/bgmi {ip} {port} {t}")
                         notify_owner_dd(
                             f"🔔 ATTACK REQUEST (QUEUE)\n\n"
                             f"🔑 Key: {kk}\n"
@@ -826,8 +831,7 @@ async def auto_release_loop(application):
                             f"🎯 Target: {ip}:{port}\n"
                             f"⏱ Time: {t}s\n"
                             f"📌 Slot: #{new_slot}\n"
-                            f"🕐 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                            f"➡️ /bgmi {ip} {port} {t}"
+                            f"🕐 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
                         )
                         print(f"✅ Queue auto-attack: Slot #{new_slot}")
         except Exception as e:
