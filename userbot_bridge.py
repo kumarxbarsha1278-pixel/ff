@@ -1,14 +1,6 @@
 """
 🌉 RAGEBITE USERBOT BRIDGE
-Aapke DM me aaye /bgmi commands ko Wispbyte bot ko forward karta hai.
-
-Requirements:
-  pip install telethon
-
-First run:
-  - Phone number daalo (with country code)
-  - OTP verify karo
-  - Session file ban jaayegi
+Sirf /bgmi commands forward karta hai (details ignore karta hai)
 """
 
 from telethon import TelegramClient, events
@@ -20,11 +12,11 @@ from telethon import TelegramClient, events
 API_ID = 30850814
 API_HASH = '411f782a2b5bc2e5c562d7921480072a'
 
-# SOURCE: VPS DD Bot (@test_swarg_bot) — jo aapko DM bhejta hai
+# SOURCE: DD Bot (@test_swarg_bot) — jo aapko DM bhejta hai
 SOURCE_BOT = '@test_swarg_bot'
 
-# TARGET: Wispbyte Bot (@dffwewewefrggertgbot) — jo attack lagata hai
-TARGET_BOT = '@dffwewewefrggertgbot'
+# TARGET: MAIN Bot (@maIN_SWARGBOT) — jo attack lagayega
+TARGET_BOT = '@maIN_SWARGBOT'
 
 SESSION_NAME = 'ragebite_bridge_session'
 
@@ -38,25 +30,20 @@ client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
 @client.on(events.NewMessage(chats=SOURCE_BOT))
 async def handler(event):
     """
-    Jab bhi SOURCE_BOT se message aaye, usme se /bgmi line nikaal ke
-    TARGET_BOT ko bhej do.
+    Sirf /bgmi commands forward karo.
+    Details wale messages ignore karo.
     """
-    text = event.raw_text or ""
+    text = (event.raw_text or "").strip()
 
-    bgmi_line = None
-    for line in text.split("\n"):
-        line = line.strip()
-        if line.startswith("/bgmi"):
-            bgmi_line = line
-            break
-
-    if not bgmi_line:
+    # Sirf /bgmi se start hone wale messages forward karo
+    if not text.startswith("/bgmi"):
+        print(f"⏭️ Ignored (not /bgmi): {text[:50]}")
         return
 
-    print(f"📩 Received: {bgmi_line}")
+    print(f"📩 Command received: {text}")
     try:
-        await client.send_message(TARGET_BOT, bgmi_line)
-        print(f"🚀 Forwarded to {TARGET_BOT}: {bgmi_line}")
+        await client.send_message(TARGET_BOT, text)
+        print(f"🚀 Forwarded to {TARGET_BOT}: {text}")
     except Exception as e:
         print(f"❌ Forward failed: {e}")
 
@@ -71,7 +58,7 @@ def main():
     print(f"📥 Source: {SOURCE_BOT}")
     print(f"📤 Target: {TARGET_BOT}")
     print("=" * 60)
-    print("⚡ Bridge running... Listening for /bgmi...")
+    print("⚡ Bridge running... Listening for /bgmi only...")
     print("=" * 60)
 
     client.start()
