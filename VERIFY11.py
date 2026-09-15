@@ -1,7 +1,7 @@
 """
 ⚡ RAGEBITE ALL-IN-ONE BACKEND ⚡
 Verify Bot + Flask API + Security + Slot Management
-Attack API call NAHI karega — owner ko DM bhejega /bgmi format me
+Attack API call NAHI karega — owner ko DM bhejega /bgmi format me key ke saath
 """
 
 import os
@@ -54,7 +54,8 @@ def init_db():
         expiry TEXT,
         status TEXT DEFAULT 'ACTIVE',
         slot_count INTEGER DEFAULT 4,
-        created_at TEXT
+        created_at TEXT,
+        generated_by TEXT
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS slots (
@@ -178,17 +179,18 @@ def check_rate_limit(identifier, max_requests=15, window=60):
 
 
 # ==================== KEYS ====================
-def generate_key(days, slot_count=4):
+def generate_key(days, slot_count=4, generated_by=None):
     if slot_count < 1 or slot_count > 4:
         slot_count = 4
     key = "LTN-1M-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
     expiry = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
     conn = get_conn()
     c = conn.cursor()
-    c.execute('''INSERT INTO keys (key, device_id, expiry, status, slot_count, created_at)
-                 VALUES (?, NULL, ?, ?, ?, ?)''',
+    c.execute('''INSERT INTO keys (key, device_id, expiry, status, slot_count, created_at, generated_by)
+                 VALUES (?, NULL, ?, ?, ?, ?, ?)''',
               (key, expiry, STATUS_ACTIVE, slot_count,
-               datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+               datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+               str(generated_by) if generated_by else None))
     conn.commit()
     conn.close()
     return key, expiry, slot_count
@@ -447,24 +449,6 @@ def get_queue_count():
     return count
 
 
-# ==================== SERVERS ====================
-def add_server(name, ip, port):
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute('INSERT INTO servers (name, ip, port) VALUES (?, ?, ?)', (name, ip, port))
-    conn.commit()
-    conn.close()
-
-
-def get_all_servers():
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute('SELECT name, ip, port FROM servers')
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-
 # ============================================================
 # 🛡️ VERIFY BOT HANDLERS
 # ============================================================
@@ -545,7 +529,7 @@ async def v_genkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if slot_count < 1 or slot_count > 4:
         await update.message.reply_text("❌ Slots 1-4")
         return
-    key, expiry, slots = generate_key(days, slot_count)
+    key, expiry, slots = generate_key(days, slot_count, generated_by=update.effective_user.id)
     await update.message.reply_text(
         f"✅ *Key Generated*\n\n"
         f"🔑 `{key}`\n"
@@ -669,7 +653,7 @@ def check_auth():
 
 
 def notify_owner_dd(text):
-    """Owner ko DM bhejo via DD bot"""
+    """Owner ko DM bhejo via DD bot (@test_swarg_bot)"""
     try:
         requests.post(
             f"https://api.telegram.org/bot{DD_BOT_TOKEN}/sendMessage",
@@ -788,9 +772,17 @@ def api_dd():
             "slots_info": slots_info
         })
 
-    # ✅ YAHAN CHANGE — Attack API call NAHI, owner ko DM bhejo
-    notify_owner_dd(f"/bgmi {ip} {port} {time_sec}")
-    print(f"📤 Forwarded to owner DM: /bgmi {ip} {port} {time_sec}")
+    notify_owner_dd(
+        f"🔔 ATTACK REQUEST\n\n"
+        f"🔑 Key: {key}\n"
+        f"👤 Device: {device_id[:20]}...\n"
+        f"🎯 Target: {ip}:{port}\n"
+        f"⏱ Time: {time_sec}s\n"
+        f"📌 Slot: #{slot_id}\n"
+        f"🕐 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        f"➡️ /bgmi {ip} {port} {time_sec}"
+    )
+    print(f"📤 Forwarded to owner DM: {key[:15]}... → {ip}:{port} for {time_sec}s")
 
     end = datetime.now() + timedelta(seconds=time_sec)
     return jsonify({
@@ -827,7 +819,16 @@ async def auto_release_loop(application):
                         continue
                     new_slot, _ = allot_slot(did, kk, pkg, ip, port, t)
                     if new_slot:
-                        notify_owner_dd(f"/bgmi {ip} {port} {t}")
+                        notify_owner_dd(
+                            f"🔔 ATTACK REQUEST (QUEUE)\n\n"
+                            f"🔑 Key: {kk}\n"
+                            f"👤 Device: {did[:20]}...\n"
+                            f"🎯 Target: {ip}:{port}\n"
+                            f"⏱ Time: {t}s\n"
+                            f"📌 Slot: #{new_slot}\n"
+                            f"🕐 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                            f"➡️ /bgmi {ip} {port} {t}"
+                        )
                         print(f"✅ Queue auto-attack: Slot #{new_slot}")
         except Exception as e:
             print(f"Auto-release: {e}")
